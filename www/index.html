@@ -1,0 +1,2162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Sistema" />
+  <meta name="theme-color" content="#030712" />
+  <title>SOLO LEVELING // SISTEMA DO JOGADOR</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fontes Futuristas: Orbitron, Rajdhani e Share Tech Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+
+  <!-- Marked & DOMPurify (com fallback seguro em JS caso falhem) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" defer></script>
+
+  <style>
+    :root {
+      --sys-bg: #030712;
+      --sys-panel: rgba(6, 15, 32, 0.9);
+      --sys-cyan: #00d4ff;
+      --sys-sky: #38bdf8;
+      --sys-blue: #0066ff;
+      --sys-glow: rgba(0, 212, 255, 0.45);
+      --sys-border: rgba(0, 212, 255, 0.45);
+      --sys-red: #ff2a4b;
+      --sys-red-glow: rgba(255, 42, 75, 0.55);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* Modo Monarca das Sombras (Nível 7+) */
+    body.monarch-mode {
+      --sys-cyan: #a855f7;
+      --sys-sky: #c084fc;
+      --sys-blue: #6b21a8;
+      --sys-glow: rgba(168, 85, 247, 0.55);
+      --sys-border: rgba(168, 85, 247, 0.55);
+    }
+
+    /* Modo Zona de Punição (prioridade máxima) */
+    body.punishment-mode {
+      --sys-cyan: #ff2a4b;
+      --sys-sky: #fb7185;
+      --sys-blue: #99001a;
+      --sys-glow: rgba(255, 42, 75, 0.6);
+      --sys-border: rgba(255, 42, 75, 0.65);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* NUNCA bloquear rolagem global */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--sys-bg);
+      color: #e6f4ff;
+      font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow-x: hidden;
+      overflow-y: auto;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .font-hud {
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 0.06em;
+    }
+
+    .font-mono-tech {
+      font-family: 'Share Tech Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+
+    /* Fundo holográfico com grade sutil */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(0, 140, 255, 0.16), transparent 62%),
+        linear-gradient(rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.035) 1px, transparent 1px);
+      background-size: 100% 100%, 30px 30px, 30px 30px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body.monarch-mode::before {
+      background:
+        radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.22), transparent 62%),
+        linear-gradient(rgba(168, 85, 247, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(168, 85, 247, 0.045) 1px, transparent 1px);
+      background-size: 100% 100%, 30px 30px, 30px 30px;
+    }
+
+    body.punishment-mode::before {
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255, 30, 60, 0.25), transparent 65%),
+        linear-gradient(rgba(255, 42, 75, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 42, 75, 0.05) 1px, transparent 1px);
+      background-size: 100% 100%, 30px 30px, 30px 30px;
+    }
+
+    /* Painel holográfico Solo Leveling com cantos brilhantes */
+    .holo-panel {
+      background: var(--sys-panel);
+      border: 1px solid var(--sys-border);
+      box-shadow: 0 0 22px rgba(0, 140, 255, 0.16), inset 0 0 20px rgba(0, 212, 255, 0.06);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 14px;
+      position: relative;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    body.monarch-mode .holo-panel {
+      box-shadow: 0 0 24px rgba(168, 85, 247, 0.22), inset 0 0 20px rgba(168, 85, 247, 0.08);
+    }
+
+    body.punishment-mode .holo-panel {
+      box-shadow: 0 0 26px rgba(255, 42, 75, 0.26), inset 0 0 20px rgba(255, 42, 75, 0.1);
+    }
+
+    /* Cantos holográficos decorativos */
+    .holo-corners::before,
+    .holo-corners::after {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      pointer-events: none;
+      border-color: var(--sys-cyan);
+      opacity: 0.9;
+    }
+    .holo-corners::before {
+      top: -1px;
+      left: -1px;
+      border-top: 2px solid var(--sys-cyan);
+      border-left: 2px solid var(--sys-cyan);
+      border-top-left-radius: 14px;
+    }
+    .holo-corners::after {
+      bottom: -1px;
+      right: -1px;
+      border-bottom: 2px solid var(--sys-cyan);
+      border-right: 2px solid var(--sys-cyan);
+      border-bottom-right-radius: 14px;
+    }
+
+    .holo-text {
+      color: var(--sys-cyan);
+      text-shadow: 0 0 10px var(--sys-glow);
+    }
+
+    .holo-btn {
+      min-height: 44px;
+      border: 1px solid var(--sys-cyan);
+      background: linear-gradient(180deg, rgba(0, 212, 255, 0.22), rgba(0, 102, 255, 0.18));
+      color: #ffffff;
+      box-shadow: 0 0 15px var(--sys-glow);
+      border-radius: 12px;
+      transition: transform 0.12s ease, box-shadow 0.2s ease, background 0.2s ease;
+      cursor: pointer;
+    }
+    body.monarch-mode .holo-btn {
+      background: linear-gradient(180deg, rgba(168, 85, 247, 0.28), rgba(107, 33, 168, 0.22));
+    }
+    .holo-btn:hover:not(:disabled) {
+      filter: brightness(1.15);
+      box-shadow: 0 0 22px var(--sys-glow);
+    }
+    .holo-btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+    .holo-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .holo-btn-danger {
+      min-height: 44px;
+      border: 1px solid #ff2a4b;
+      background: linear-gradient(180deg, rgba(255, 42, 75, 0.26), rgba(140, 0, 24, 0.26));
+      color: #ffd6dd;
+      box-shadow: 0 0 15px rgba(255, 42, 75, 0.35);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.12s ease, filter 0.2s ease;
+    }
+    .holo-btn-danger:hover {
+      filter: brightness(1.15);
+    }
+
+    /* Botões de aba */
+    .nav-tab {
+      min-height: 44px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .nav-tab.active {
+      color: var(--sys-cyan);
+      text-shadow: 0 0 10px var(--sys-glow);
+      background: rgba(0, 212, 255, 0.13);
+      border-color: var(--sys-border);
+    }
+    body.monarch-mode .nav-tab.active {
+      background: rgba(168, 85, 247, 0.16);
+    }
+
+    /* Safe areas iOS */
+    .pt-safe {
+      padding-top: calc(var(--safe-top) + 0.6rem);
+    }
+    .pb-safe-nav {
+      padding-bottom: calc(var(--safe-bottom) + 5.75rem);
+    }
+    .bottom-nav {
+      padding-bottom: calc(var(--safe-bottom) + 0.45rem);
+    }
+
+    /* =====================================================================
+       CORREÇÃO CRÍTICA DE ROLAGEM NA ABA "IA DO SISTEMA"
+       min-height: 0 em TODOS os containers flex pai e filho
+       ===================================================================== */
+    #tab-ai {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      height: calc(100vh - 150px);
+      height: calc(100dvh - 150px);
+      min-height: 500px;
+    }
+    #tab-ai.hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 767px) {
+      #tab-ai {
+        height: calc(100vh - 135px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+        height: calc(100dvh - 135px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+        min-height: 400px;
+      }
+      /* Quando a aba IA está ativa no mobile, reduz padding extra do main para caber exato acima da bottom-nav */
+      main.ai-active-mobile {
+        padding-top: 0.5rem;
+        padding-bottom: calc(var(--safe-bottom) + 4.75rem);
+      }
+    }
+
+    .ai-layout {
+      display: flex;
+      flex: 1 1 0%;
+      min-height: 0;
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ai-sidebar {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .ai-conv-list {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+    }
+
+    .ai-main {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0%;
+      min-height: 0;
+      min-width: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #ai-messages {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+      scroll-behavior: smooth;
+    }
+
+    /* Botão flutuante "Ir para o final" */
+    #btn-scroll-bottom {
+      position: absolute;
+      bottom: 84px;
+      right: 16px;
+      z-index: 20;
+      min-height: 36px;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      border: 1px solid var(--sys-cyan);
+      background: rgba(3, 12, 28, 0.92);
+      color: var(--sys-sky);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 12px var(--sys-glow);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    #btn-scroll-bottom.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    /* Quebra de linha e rolagem horizontal segura dentro das mensagens */
+    .chat-bubble-content {
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+      max-width: 100%;
+    }
+
+    .chat-prose {
+      font-size: 0.98rem;
+      line-height: 1.55;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+    }
+    .chat-prose h1, .chat-prose h2, .chat-prose h3 {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--sys-sky);
+      margin: 0.75rem 0 0.4rem 0;
+      font-weight: 700;
+    }
+    .chat-prose h1 { font-size: 1.15rem; }
+    .chat-prose h2 { font-size: 1.05rem; }
+    .chat-prose h3 { font-size: 0.98rem; }
+    .chat-prose p { margin: 0 0 0.6rem 0; }
+    .chat-prose p:last-child { margin-bottom: 0; }
+    .chat-prose ul, .chat-prose ol { margin: 0.4rem 0 0.65rem 1.25rem; }
+    .chat-prose ul { list-style-type: disc; }
+    .chat-prose ol { list-style-type: decimal; }
+    .chat-prose li { margin-bottom: 0.25rem; }
+    .chat-prose strong { color: var(--sys-sky); font-weight: 700; }
+    .chat-prose blockquote {
+      border-left: 3px solid var(--sys-cyan);
+      padding-left: 0.75rem;
+      margin: 0.5rem 0;
+      color: #bae6fd;
+      background: rgba(0, 212, 255, 0.06);
+      padding-top: 0.3rem;
+      padding-bottom: 0.3rem;
+      border-radius: 0 8px 8px 0;
+    }
+
+    /* Blocos de código com rolagem horizontal própria */
+    .chat-prose pre {
+      position: relative;
+      background: rgba(2, 6, 16, 0.96);
+      border: 1px solid var(--sys-border);
+      border-radius: 10px;
+      padding: 2.3rem 0.9rem 0.9rem 0.9rem;
+      overflow-x: auto;
+      max-width: 100%;
+      margin: 0.65rem 0;
+      font-size: 0.84rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    .chat-prose code {
+      font-family: 'Share Tech Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: rgba(0, 212, 255, 0.14);
+      padding: 0.1rem 0.35rem;
+      border-radius: 5px;
+      font-size: 0.88em;
+      word-break: break-word;
+    }
+    .chat-prose pre code {
+      background: transparent;
+      padding: 0;
+      word-break: normal;
+      white-space: pre;
+    }
+
+    /* Tabelas com rolagem horizontal própria */
+    .table-scroll-wrap {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0.65rem 0;
+      border-radius: 8px;
+      border: 1px solid var(--sys-border);
+    }
+    .chat-prose table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      min-width: 320px;
+    }
+    .chat-prose th, .chat-prose td {
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 0.45rem 0.65rem;
+      text-align: left;
+    }
+    .chat-prose th {
+      background: rgba(0, 212, 255, 0.14);
+      color: var(--sys-sky);
+      font-weight: 700;
+    }
+
+    .copy-code-btn {
+      position: absolute;
+      top: 0.45rem;
+      right: 0.45rem;
+      background: rgba(0, 212, 255, 0.16);
+      border: 1px solid var(--sys-border);
+      color: #e0f2fe;
+      font-size: 0.72rem;
+      padding: 0.22rem 0.6rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .copy-code-btn:hover {
+      background: rgba(0, 212, 255, 0.32);
+    }
+
+    /* Animações */
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 16px var(--sys-glow); }
+      50% { box-shadow: 0 0 30px var(--sys-glow); }
+    }
+    .animate-glow { animation: pulseGlow 2.4s infinite ease-in-out; }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    .animate-float { animation: floatSlow 3.4s infinite ease-in-out; }
+
+    @keyframes typingDot {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 9999px;
+      background: var(--sys-cyan);
+      display: inline-block;
+      animation: typingDot 1.3s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    /* Scrollbar estilizada */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(3, 7, 18, 0.6); }
+    ::-webkit-scrollbar-thumb { background: var(--sys-border); border-radius: 99px; }
+  </style>
+</head>
+<body class="relative selection:bg-cyan-500/30 selection:text-cyan-100">
+
+  <!-- ==================== MODAL INICIAL HOLOGRÁFICO ==================== -->
+  <div id="welcome-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#02050d]/95 backdrop-blur-md">
+    <div class="holo-panel holo-corners animate-glow w-full max-w-md p-6 sm:p-8 text-center relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-400/60 bg-cyan-500/10 mb-5">
+        <span class="font-hud text-sm sm:text-base font-extrabold holo-text">[ ! ] NOTIFICAÇÃO</span>
+      </div>
+      <h1 class="font-hud text-2xl sm:text-3xl font-black text-white tracking-wider mb-3">
+        Bem-Vindo Jogador
+      </h1>
+      <p class="text-cyan-100/90 text-base leading-relaxed mb-5">
+        Você adquiriu as qualificações para se tornar um <span class="text-cyan-300 font-bold">Jogador</span>.
+        Conclua as <span class="text-white font-bold">17 missões diárias</span> para evoluir seus atributos infinitamente e subir de nível.
+      </p>
+      <div class="text-xs sm:text-sm text-cyan-200/80 bg-cyan-950/40 border border-cyan-500/30 rounded-xl p-3 mb-6">
+        Aviso: O não cumprimento das metas diárias ativará a <span class="text-rose-400 font-bold">Zona de Punição</span>.
+      </div>
+      <button id="btn-accept-welcome" type="button" class="holo-btn font-hud w-full py-4 text-lg font-extrabold tracking-widest">
+        [ ACEITAR ]
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== HEADER SUPERIOR ==================== -->
+  <header class="sticky top-0 z-30 bg-[#030712]/92 backdrop-blur-md border-b border-cyan-500/30 pt-safe">
+    <div class="max-w-6xl mx-auto px-3 sm:px-4 pb-2.5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-10 h-10 rounded-xl border border-cyan-400/60 bg-cyan-500/15 flex items-center justify-center shrink-0">
+          <span class="font-hud font-black holo-text text-lg">S</span>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h2 class="font-hud text-xs sm:text-sm md:text-base font-bold text-white truncate">SISTEMA DO JOGADOR</h2>
+            <span id="sync-badge" class="font-mono-tech text-[10px] px-2 py-0.5 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-cyan-300">MODO LOCAL</span>
+          </div>
+          <p class="text-xs sm:text-sm text-cyan-300/85 truncate font-semibold">
+            Dia <span id="hdr-day" class="text-white">1</span> •
+            Nv. <span id="hdr-level" class="holo-text">1</span> •
+            <span id="hdr-rank" class="text-cyan-200">RANK E</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Botão de Som (Web Audio API) -->
+        <button id="btn-toggle-sound" type="button" title="Alternar efeitos sonoros" class="min-w-[44px] min-h-[44px] rounded-xl border border-cyan-500/35 bg-cyan-500/10 text-cyan-200 flex items-center justify-center text-base hover:bg-cyan-500/20">
+          🔊
+        </button>
+
+        <!-- Navegação Desktop -->
+        <nav class="hidden md:flex items-center gap-1.5" aria-label="Navegação principal">
+          <button type="button" data-tab="missoes" class="nav-tab active px-3.5 py-2 rounded-xl border border-transparent font-hud text-xs font-bold">MISSÕES</button>
+          <button type="button" data-tab="cacador" class="nav-tab px-3.5 py-2 rounded-xl border border-transparent font-hud text-xs font-bold text-slate-300 hover:text-cyan-200">CAÇADOR</button>
+          <button type="button" data-tab="historico" class="nav-tab px-3.5 py-2 rounded-xl border border-transparent font-hud text-xs font-bold text-slate-300 hover:text-cyan-200">HISTÓRICO</button>
+          <button type="button" data-tab="ai" class="nav-tab px-3.5 py-2 rounded-xl border border-transparent font-hud text-xs font-bold text-slate-300 hover:text-cyan-200">IA DO SISTEMA</button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== CONTEÚDO PRINCIPAL ==================== -->
+  <main id="main-container" class="relative z-10 max-w-6xl mx-auto px-3 sm:px-4 pt-4 pb-safe-nav md:pb-8">
+
+    <!-- ==================== ABA 1: MISSÕES ==================== -->
+    <section id="tab-missoes" class="tab-section space-y-4">
+      <div class="holo-panel holo-corners p-4 sm:p-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="font-hud text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-400/40 holo-text">QUEST DIÁRIA</span>
+              <span id="week-progress-label" class="font-mono-tech text-xs text-cyan-200/85">Semana: 0/7 dias para Nível 2</span>
+            </div>
+            <h3 class="font-hud text-base sm:text-xl font-extrabold text-white">PREPARAÇÃO PARA SE TORNAR FORTE</h3>
+          </div>
+          <div class="flex items-center justify-between sm:justify-end gap-3">
+            <div class="text-left sm:text-right">
+              <div class="text-xs text-cyan-300/75 uppercase tracking-wider">Progresso Hoje</div>
+              <div class="font-hud text-xl font-black text-white">
+                <span id="missions-done-count" class="holo-text">0</span> / 17
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3.5 w-full h-3 rounded-full bg-slate-950/90 border border-cyan-500/35 overflow-hidden">
+          <div id="missions-progress-bar" class="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-sky-200 transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Lista das 17 Missões -->
+      <div id="missions-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+
+      <!-- Finalizar Dia -->
+      <div class="holo-panel p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="text-center sm:text-left">
+          <p class="font-hud text-sm sm:text-base font-bold text-white">Encerrar o Dia <span id="finish-day-num" class="holo-text">1</span>?</p>
+          <p class="text-xs sm:text-sm text-cyan-200/80">Conclua as 17 metas para evoluir. Se faltar qualquer tarefa, a Zona de Punição será ativada.</p>
+        </div>
+        <button id="btn-finish-day" type="button" class="holo-btn font-hud w-full sm:w-auto px-8 py-3.5 text-sm sm:text-base font-extrabold tracking-wider">
+          FINALIZAR DIA
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== ABA 2: CAÇADOR ==================== -->
+    <section id="tab-cacador" class="tab-section hidden space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Personagem Evolutivo SVG -->
+        <div class="lg:col-span-5 holo-panel holo-corners p-5 flex flex-col items-center text-center">
+          <div class="w-full flex items-center justify-between mb-2">
+            <span id="hunter-rank-badge" class="font-hud text-xs font-extrabold px-3 py-1 rounded-lg bg-cyan-500/20 border border-cyan-400/50 holo-text">RANK E</span>
+            <span class="font-hud text-sm font-bold text-white">NV. <span id="hunter-level" class="holo-text">1</span></span>
+          </div>
+
+          <div id="hunter-svg-container" class="w-56 h-64 sm:w-64 sm:h-72 flex items-center justify-center my-2 animate-float"></div>
+
+          <h3 id="hunter-title" class="font-hud text-lg font-extrabold text-white mt-1">Caçador Desperto</h3>
+          <p id="hunter-subtitle" class="text-xs sm:text-sm text-cyan-300/80 mb-4">Complete 7 dias perfeitos para subir de nível (+5 nas metas)</p>
+
+          <div class="grid grid-cols-3 gap-2 w-full">
+            <div class="bg-slate-950/75 border border-cyan-500/25 rounded-xl p-2.5">
+              <div class="text-[11px] text-cyan-300/75 uppercase">Dia Atual</div>
+              <div id="stat-day" class="font-hud text-lg font-bold text-white">1</div>
+            </div>
+            <div class="bg-slate-950/75 border border-cyan-500/25 rounded-xl p-2.5">
+              <div class="text-[11px] text-cyan-300/75 uppercase">Dias Feitos</div>
+              <div id="stat-completed-days" class="font-hud text-lg font-bold holo-text">0</div>
+            </div>
+            <div class="bg-slate-950/75 border border-cyan-500/25 rounded-xl p-2.5">
+              <div class="text-[11px] text-cyan-300/75 uppercase">Sequência</div>
+              <div id="stat-streak" class="font-hud text-lg font-bold text-emerald-300">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Atributos Infinitos & Diagnóstico -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="holo-panel p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-hud text-sm sm:text-base font-extrabold text-white">ATRIBUTOS INFINITOS</h3>
+              <span class="font-mono-tech text-xs text-cyan-300/85">TOTAL: <strong id="total-attr-points" class="text-white">0</strong> PTS</span>
+            </div>
+            <div id="attributes-container" class="space-y-3.5"></div>
+          </div>
+
+          <div class="holo-panel p-5">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-hud text-sm font-extrabold text-white">DIAGNÓSTICO DO SISTEMA</h3>
+              <span id="diagnosis-badge" class="font-hud text-[11px] font-bold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">EM ANÁLISE</span>
+            </div>
+            <p id="diagnosis-text" class="text-sm sm:text-base text-cyan-100/90 leading-relaxed">
+              Complete suas primeiras missões diárias para o Sistema avaliar seu desempenho.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ABA 3: HISTÓRICO ==================== -->
+    <section id="tab-historico" class="tab-section hidden space-y-4">
+      <div class="holo-panel holo-corners p-5">
+        <h3 class="font-hud text-sm sm:text-base font-extrabold text-white mb-4">GERENCIAMENTO DE DADOS & iOS</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <button id="btn-export-json" type="button" class="holo-btn px-4 py-3 font-hud text-xs font-bold flex items-center justify-center gap-2">
+            [ EXPORTAR JSON ]
+          </button>
+          <label class="holo-btn px-4 py-3 font-hud text-xs font-bold flex items-center justify-center gap-2 cursor-pointer">
+            <span>[ IMPORTAR JSON ]</span>
+            <input id="input-import-json" type="file" accept="application/json,.json" class="hidden" />
+          </label>
+          <button id="btn-ios-install" type="button" class="holo-btn px-4 py-3 font-hud text-xs font-bold flex items-center justify-center gap-2">
+            [ INSTALAR NO IPHONE ]
+          </button>
+          <button id="btn-reset-system" type="button" class="holo-btn-danger px-4 py-3 font-hud text-xs font-bold flex items-center justify-center gap-2">
+            [ REINICIAR SISTEMA ]
+          </button>
+        </div>
+      </div>
+
+      <div class="holo-panel p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-hud text-sm sm:text-base font-extrabold text-white">REGISTRO DE DIAS</h3>
+          <span id="history-count" class="font-mono-tech text-xs text-cyan-300/80">0 registros</span>
+        </div>
+        <div id="history-list" class="space-y-2.5"></div>
+      </div>
+    </section>
+
+    <!-- ==================== ABA 4: IA DO SISTEMA (ROLAGEM CORRIGIDA) ==================== -->
+    <section id="tab-ai" class="tab-section hidden">
+      <div class="holo-panel ai-layout">
+
+        <!-- Sidebar / Gaveta de Conversas -->
+        <aside id="chat-sidebar" class="ai-sidebar fixed md:static inset-y-0 left-0 z-40 w-72 max-w-[84vw] bg-[#050e20] md:bg-slate-950/65 border-r border-cyan-500/30 transform -translate-x-full md:translate-x-0 transition-transform duration-200">
+          <div class="p-3 border-b border-cyan-500/25 flex items-center justify-between gap-2 shrink-0">
+            <button id="btn-new-chat" type="button" class="holo-btn flex-1 py-2 px-3 text-xs font-hud font-bold">
+              + NOVA CONVERSA
+            </button>
+            <button id="btn-close-sidebar" type="button" class="md:hidden min-w-[44px] min-h-[44px] rounded-xl border border-cyan-500/35 text-cyan-200 flex items-center justify-center" aria-label="Fechar conversas">
+              ✕
+            </button>
+          </div>
+
+          <div id="chat-history-list" class="ai-conv-list p-2 space-y-1.5"></div>
+
+          <div class="p-3 border-t border-cyan-500/25 shrink-0">
+            <button id="btn-ai-settings" type="button" class="w-full min-h-[44px] rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-xs font-hud text-cyan-200 font-bold flex items-center justify-center gap-2">
+              <span>⚙</span>
+              <span>CONFIGURAÇÕES DA IA</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- Overlay mobile da gaveta -->
+        <div id="chat-sidebar-overlay" class="fixed inset-0 bg-black/65 z-30 hidden md:hidden"></div>
+
+        <!-- Coluna Principal do Chat -->
+        <div class="ai-main">
+          <!-- Cabeçalho fixo do Chat -->
+          <div class="p-2.5 sm:p-3 border-b border-cyan-500/25 flex items-center justify-between gap-2 bg-slate-950/60 shrink-0">
+            <div class="flex items-center gap-2 min-w-0">
+              <button id="btn-open-sidebar" type="button" class="md:hidden min-w-[44px] min-h-[44px] rounded-xl border border-cyan-500/35 bg-cyan-500/10 text-cyan-200 flex items-center justify-center text-lg" aria-label="Abrir histórico">
+                ☰
+              </button>
+              <div class="min-w-0">
+                <h3 class="font-hud text-xs sm:text-sm font-bold text-white truncate">IA DO SISTEMA</h3>
+                <p id="ai-mode-indicator" class="font-mono-tech text-[11px] text-cyan-300/80 truncate">Gemini API • Contexto 24 msgs</p>
+              </div>
+            </div>
+            <button id="btn-ai-settings-top" type="button" title="Configurações da IA" class="min-w-[44px] min-h-[44px] px-3 rounded-xl border border-cyan-500/35 bg-cyan-500/10 hover:bg-cyan-500/20 text-sm text-cyan-200 flex items-center justify-center">
+              ⚙
+            </button>
+          </div>
+
+          <!-- Área Rolável de Mensagens -->
+          <div id="ai-messages" class="p-3 sm:p-4 space-y-4"></div>
+
+          <!-- Botão Flutuante "Ir para o final" -->
+          <button id="btn-scroll-bottom" type="button" aria-label="Ir para o final das mensagens">
+            ↓ Ir para o final
+          </button>
+
+          <!-- Indicador de Carregamento -->
+          <div id="chat-typing" class="hidden px-4 py-2 text-xs font-mono-tech text-cyan-300 flex items-center gap-2 bg-slate-950/50 border-t border-cyan-500/15 shrink-0">
+            <span>SISTEMA PROCESSANDO</span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+
+          <!-- Barra Fixa de Digitação -->
+          <div class="p-2.5 sm:p-3 border-t border-cyan-500/30 bg-slate-950/85 shrink-0">
+            <div class="flex items-end gap-2">
+              <div class="flex-1 min-w-0">
+                <textarea id="chat-input" rows="1" maxlength="8000" placeholder="Digite sua pergunta para a IA do Sistema..." class="w-full bg-slate-900/95 border border-cyan-500/40 focus:border-cyan-300 focus:outline-none rounded-xl px-3.5 py-2.5 text-sm sm:text-base text-white placeholder-cyan-200/40 resize-none max-h-28 min-h-[44px]"></textarea>
+                <div class="flex items-center justify-between px-1 mt-1">
+                  <span class="text-[10px] text-cyan-300/60 hidden sm:inline">Enter envia • Shift+Enter quebra linha</span>
+                  <span id="chat-char-count" class="font-mono-tech text-[10px] text-cyan-300/65 ml-auto">0 / 8000</span>
+                </div>
+              </div>
+              <button id="btn-send-chat" type="button" class="holo-btn px-4 sm:px-5 py-2.5 font-hud text-xs font-bold shrink-0 mb-4">
+                ENVIAR
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== NAVEGAÇÃO INFERIOR MOBILE (HUD iOS) ==================== -->
+  <nav class="bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#030712]/95 backdrop-blur-lg border-t border-cyan-500/35 px-2 pt-1.5" aria-label="Navegação mobile">
+    <div class="grid grid-cols-4 gap-1 max-w-md mx-auto">
+      <button type="button" data-tab="missoes" class="nav-tab active flex flex-col items-center justify-center rounded-xl border border-transparent py-1 text-[10px] font-hud font-bold">
+        <span class="text-base leading-none mb-0.5">⚔️</span>
+        <span>MISSÕES</span>
+      </button>
+      <button type="button" data-tab="cacador" class="nav-tab flex flex-col items-center justify-center rounded-xl border border-transparent py-1 text-[10px] font-hud font-bold text-slate-300">
+        <span class="text-base leading-none mb-0.5">🛡️</span>
+        <span>CAÇADOR</span>
+      </button>
+      <button type="button" data-tab="historico" class="nav-tab flex flex-col items-center justify-center rounded-xl border border-transparent py-1 text-[10px] font-hud font-bold text-slate-300">
+        <span class="text-base leading-none mb-0.5">📜</span>
+        <span>HISTÓRICO</span>
+      </button>
+      <button type="button" data-tab="ai" class="nav-tab flex flex-col items-center justify-center rounded-xl border border-transparent py-1 text-[10px] font-hud font-bold text-slate-300">
+        <span class="text-base leading-none mb-0.5">💠</span>
+        <span>IA</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==================== MODAIS AUXILIARES ==================== -->
+  <div id="system-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div id="system-modal-card" class="holo-panel holo-corners w-full max-w-md p-6 text-center space-y-4">
+      <div id="system-modal-badge" class="inline-block font-hud text-xs font-extrabold px-3 py-1 rounded-full border border-cyan-400/50 bg-cyan-500/15 holo-text">
+        [ ! ] SISTEMA
+      </div>
+      <h3 id="system-modal-title" class="font-hud text-xl font-black text-white">Título</h3>
+      <div id="system-modal-body" class="text-sm sm:text-base text-cyan-100/90 leading-relaxed"></div>
+      <div id="system-modal-actions" class="flex flex-col sm:flex-row gap-2.5 pt-2"></div>
+    </div>
+  </div>
+
+  <!-- Modal Configurações da IA -->
+  <div id="ai-settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div class="holo-panel holo-corners w-full max-w-md p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-hud text-sm sm:text-base font-extrabold text-white">CONFIGURAÇÕES DA IA</h3>
+        <button id="btn-close-ai-settings" type="button" class="min-w-[44px] min-h-[44px] rounded-xl border border-cyan-500/35 text-cyan-200 flex items-center justify-center">✕</button>
+      </div>
+      <div class="space-y-3 text-sm">
+        <div>
+          <label class="block text-xs text-cyan-300 mb-1.5 font-bold uppercase">Modo de Conexão</label>
+          <select id="ai-provider-select" class="w-full min-h-[44px] bg-slate-900 border border-cyan-500/40 rounded-xl px-3 text-white">
+            <option value="gemini">Gemini API Direta (Padrão Integrado)</option>
+            <option value="backend">Backend Seguro Próprio (POST /api/chat)</option>
+          </select>
+        </div>
+        <div id="ai-apikey-wrap">
+          <label class="block text-xs text-cyan-300 mb-1.5 font-bold uppercase">Chave Gemini API (opcional)</label>
+          <input id="ai-apikey-input" type="password" placeholder="Deixe vazio para usar o ambiente integrado" class="w-full min-h-[44px] bg-slate-900 border border-cyan-500/40 rounded-xl px-3 text-white" />
+          <p class="text-[11px] text-cyan-200/65 mt-1">No ambiente integrado, deixe em branco. Para uso externo, prefira o modo Backend Seguro.</p>
+        </div>
+        <div id="ai-endpoint-wrap" class="hidden">
+          <label class="block text-xs text-cyan-300 mb-1.5 font-bold uppercase">Endpoint do Backend</label>
+          <input id="ai-endpoint-input" type="text" value="/api/chat" class="w-full min-h-[44px] bg-slate-900 border border-cyan-500/40 rounded-xl px-3 text-white" />
+        </div>
+      </div>
+      <button id="btn-save-ai-settings" type="button" class="holo-btn w-full font-hud text-xs font-bold">
+        SALVAR CONFIGURAÇÕES
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast de Feedback Rápido -->
+  <div id="toast-container" class="fixed top-20 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- ==================== SCRIPT PRINCIPAL ==================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // 1. CONSTANTES, 17 METAS DIÁRIAS E ATRIBUTOS
+      // =========================================================================
+      const STORAGE_KEY = 'solo_leveling_system_v3';
+      const MAX_CHAT_CHARS = 8000;
+      const CONTEXT_WINDOW_SIZE = 24;
+
+      const ATTRIBUTES_META = [
+        { key: 'fisico', label: 'Físico', color: 'from-cyan-500 to-blue-400' },
+        { key: 'inteligencia', label: 'Conhecimento / Inteligência', color: 'from-sky-400 to-cyan-200' },
+        { key: 'vitalidade', label: 'Vitalidade / Físico', color: 'from-emerald-500 to-cyan-400' },
+        { key: 'disciplina', label: 'Disciplina', color: 'from-indigo-500 to-cyan-400' },
+        { key: 'mentalidade', label: 'Mentalidade', color: 'from-violet-500 to-cyan-400' },
+        { key: 'carisma', label: 'Carisma', color: 'from-teal-400 to-emerald-300' },
+        { key: 'sabedoria', label: 'Sabedoria', color: 'from-amber-400 to-cyan-300' }
+      ];
+
+      const MISSIONS_DEF = [
+        { id: 1, type: 'scalable', base: 20, step: 5, template: (v) => `${v} flexões`, attr: 'fisico', attrLabel: 'Físico' },
+        { id: 2, type: 'scalable', base: 20, step: 5, template: (v) => `${v} agachamentos`, attr: 'fisico', attrLabel: 'Físico' },
+        { id: 3, type: 'scalable', base: 20, step: 5, template: (v) => `${v} abdominais`, attr: 'fisico', attrLabel: 'Físico' },
+        { id: 4, type: 'fixed', title: 'Arrumar o quarto', attr: 'disciplina', attrLabel: 'Disciplina' },
+        { id: 5, type: 'scalable', base: 10, step: 5, template: (v) => `Ler ${v} páginas de um livro`, attr: 'inteligencia', attrLabel: 'Conhecimento / Inteligência' },
+        { id: 6, type: 'scalable', base: 20, step: 5, template: (v) => `Estudar ${v} minutos de inglês`, attr: 'inteligencia', attrLabel: 'Conhecimento / Inteligência' },
+        { id: 7, type: 'fixed', title: 'Não ver vídeos tristes', attr: 'mentalidade', attrLabel: 'Mentalidade' },
+        { id: 8, type: 'fixed', title: 'Ser gentil', attr: 'carisma', attrLabel: 'Carisma' },
+        { id: 9, type: 'fixed', title: 'Não xingar', attr: 'disciplina', attrLabel: 'Disciplina' },
+        { id: 10, type: 'fixed', title: 'Ver apenas 1h de TikTok', attr: 'disciplina', attrLabel: 'Disciplina' },
+        { id: 11, type: 'fixed', title: 'Ver apenas 1h de Instagram', attr: 'disciplina', attrLabel: 'Disciplina' },
+        { id: 12, type: 'fixed', title: 'Ajudar nos serviços de casa', attr: 'carisma', attrLabel: 'Carisma' },
+        { id: 13, type: 'fixed', title: 'Assistir anime', attr: 'mentalidade', attrLabel: 'Mentalidade' },
+        { id: 14, type: 'fixed', title: 'Escovar os dentes 3 vezes ao dia', attr: 'vitalidade', attrLabel: 'Vitalidade / Físico' },
+        { id: 15, type: 'fixed', title: 'Beber 4L de água', attr: 'vitalidade', attrLabel: 'Vitalidade / Físico' },
+        { id: 16, type: 'fixed', title: 'Não comer besteira', attr: 'vitalidade', attrLabel: 'Vitalidade / Físico' },
+        { id: 17, type: 'fixed', title: 'Guardar dinheiro', attr: 'sabedoria', attrLabel: 'Sabedoria' }
+      ];
+
+      function createDefaultState() {
+        const firstChatId = 'chat_' + Date.now();
+        return {
+          acceptedWelcome: false,
+          soundEnabled: true,
+          day: 1,
+          level: 1,
+          weekProgress: 0,
+          completedDays: 0,
+          streak: 0,
+          punishmentActive: false,
+          completedMissions: {},
+          attributes: {
+            fisico: 0,
+            disciplina: 0,
+            inteligencia: 0,
+            mentalidade: 0,
+            carisma: 0,
+            vitalidade: 0,
+            sabedoria: 0
+          },
+          history: [],
+          chats: [
+            {
+              id: firstChatId,
+              title: 'Início do Sistema',
+              messages: [
+                {
+                  id: 'msg_init',
+                  role: 'assistant',
+                  text: '**[ SISTEMA ATIVADO ]**\n\nBem-vindo, Jogador. Sou a **IA do Sistema**.\n\nPosso ajudar com dúvidas simples ou complexas — matemática, programação, inglês, rotina, treinos, resumos, textos e estratégia para suas **17 missões diárias**. O que deseja consultar agora?'
+                }
+              ]
+            }
+          ],
+          activeChatId: firstChatId,
+          aiSettings: {
+            provider: 'gemini',
+            apiKey: '',
+            endpoint: '/api/chat'
+          },
+          updatedAt: Date.now()
+        };
+      }
+
+      let state = createDefaultState();
+      let cloudSync = { enabled: false, save: null };
+      let isSendingAI = false;
+      let activeTab = 'missoes';
+
+      // =========================================================================
+      // 2. SISTEMA DE SOM SINTÉTICO (WEB AUDIO API - COMPATÍVEL COM iOS)
+      // =========================================================================
+      let audioCtx = null;
+
+      function unlockAudio() {
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) return;
+          if (!audioCtx) audioCtx = new Ctx();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+        } catch (_) {}
+      }
+
+      function playSound(type) {
+        if (!state.soundEnabled) return;
+        try {
+          unlockAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          if (type === 'check') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, now);
+            osc.frequency.exponentialRampToValueAtTime(980, now + 0.11);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            osc.start(now);
+            osc.stop(now + 0.14);
+          } else if (type === 'levelup') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.setValueAtTime(660, now + 0.1);
+            osc.frequency.setValueAtTime(880, now + 0.2);
+            gain.gain.setValueAtTime(0.11, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            osc.start(now);
+            osc.stop(now + 0.45);
+          } else if (type === 'punish') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(190, now);
+            osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+            gain.gain.setValueAtTime(0.09, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc.start(now);
+            osc.stop(now + 0.35);
+          } else {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(680, now);
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+            osc.start(now);
+            osc.stop(now + 0.09);
+          }
+        } catch (_) {}
+      }
+
+      // =========================================================================
+      // 3. PERSISTÊNCIA (LOCALSTORAGE IMEDIATO + FIREBASE ASSÍNCRONO)
+      // =========================================================================
+      function setSyncBadge(status) {
+        const badge = document.getElementById('sync-badge');
+        if (!badge) return;
+        if (status === 'synced') {
+          badge.textContent = 'DADOS SINCRONIZADOS';
+          badge.className = 'font-mono-tech text-[10px] px-2 py-0.5 rounded-full border border-emerald-400/50 bg-emerald-500/15 text-emerald-300';
+        } else if (status === 'saving') {
+          badge.textContent = 'SALVANDO...';
+          badge.className = 'font-mono-tech text-[10px] px-2 py-0.5 rounded-full border border-amber-400/50 bg-amber-500/15 text-amber-200';
+        } else {
+          badge.textContent = 'MODO LOCAL';
+          badge.className = 'font-mono-tech text-[10px] px-2 py-0.5 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-cyan-300';
+        }
+      }
+
+      function loadLocalState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('solo_leveling_system_v2');
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            const def = createDefaultState();
+            state = {
+              ...def,
+              ...parsed,
+              attributes: { ...def.attributes, ...(parsed.attributes || {}) },
+              completedMissions: parsed.completedMissions || {},
+              history: Array.isArray(parsed.history) ? parsed.history : [],
+              chats: Array.isArray(parsed.chats) && parsed.chats.length > 0 ? parsed.chats : def.chats,
+              aiSettings: { ...def.aiSettings, ...(parsed.aiSettings || {}) }
+            };
+            if (!state.chats.some(c => c.id === state.activeChatId)) {
+              state.activeChatId = state.chats[0].id;
+            }
+          }
+        } catch (err) {
+          console.warn('Fallback para estado padrão:', err);
+        }
+      }
+
+      function saveState() {
+        state.updatedAt = Date.now();
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (err) {
+          console.warn('Erro ao salvar localmente:', err);
+        }
+        if (cloudSync.enabled && typeof cloudSync.save === 'function') {
+          setSyncBadge('saving');
+          try {
+            cloudSync.save(state);
+          } catch (_) {
+            setSyncBadge('local');
+          }
+        }
+      }
+
+      async function initFirebaseSafely() {
+        try {
+          if (typeof __firebase_config === 'undefined' || !__firebase_config) return;
+          const firebaseConfig = JSON.parse(__firebase_config);
+          if (!firebaseConfig || !firebaseConfig.apiKey) return;
+
+          const appId = typeof __app_id !== 'undefined' ? __app_id : 'solo-leveling-system';
+          const [appMod, authMod, fsMod] = await Promise.all([
+            import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
+            import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
+            import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
+          ]);
+
+          const app = appMod.initializeApp(firebaseConfig);
+          const auth = authMod.getAuth(app);
+          const db = fsMod.getFirestore(app);
+
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await authMod.signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await authMod.signInAnonymously(auth);
+          }
+
+          const user = auth.currentUser;
+          if (!user) return;
+
+          const profileRef = fsMod.doc(db, 'artifacts', appId, 'users', user.uid, 'system_data', 'profile');
+          const snap = await fsMod.getDoc(profileRef);
+          if (snap.exists()) {
+            const cloudData = snap.data();
+            if (cloudData && cloudData.payload) {
+              const parsedCloud = JSON.parse(cloudData.payload);
+              if ((parsedCloud.updatedAt || 0) > (state.updatedAt || 0)) {
+                const def = createDefaultState();
+                state = {
+                  ...def,
+                  ...parsedCloud,
+                  attributes: { ...def.attributes, ...(parsedCloud.attributes || {}) },
+                  aiSettings: { ...def.aiSettings, ...(parsedCloud.aiSettings || {}) }
+                };
+                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+                renderAll();
+              }
+            }
+          }
+
+          let saveTimer = null;
+          cloudSync.enabled = true;
+          cloudSync.save = (currentState) => {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(async () => {
+              try {
+                await fsMod.setDoc(profileRef, {
+                  payload: JSON.stringify(currentState),
+                  updatedAt: Date.now()
+                }, { merge: true });
+                setSyncBadge('synced');
+              } catch (_) {
+                setSyncBadge('local');
+              }
+            }, 650);
+          };
+
+          setSyncBadge('synced');
+        } catch (err) {
+          setSyncBadge('local');
+        }
+      }
+
+      // =========================================================================
+      // 4. UTILITÁRIOS DE UI (TOAST, MODAL, CLIPBOARD, RANK, SVG)
+      // =========================================================================
+      function showToast(msg, type = 'info') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const el = document.createElement('div');
+        const border = type === 'danger' ? 'border-rose-400/75 text-rose-200' : 'border-cyan-400/75 text-cyan-100';
+        el.className = `holo-panel px-4 py-2.5 text-xs sm:text-sm font-bold ${border} transition-all duration-300`;
+        el.textContent = msg;
+        container.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(-6px)';
+          setTimeout(() => el.remove(), 300);
+        }, 2400);
+      }
+
+      function copyToClipboard(text, successMsg = 'Copiado!') {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          ta.setSelectionRange(0, 999999);
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          showToast(successMsg);
+        } catch (_) {
+          showToast('Não foi possível copiar.', 'danger');
+        }
+      }
+
+      function openSystemModal({ badge = '[ ! ] SISTEMA', title, bodyHtml, isDanger = false, actions = [] }) {
+        const modal = document.getElementById('system-modal');
+        const card = document.getElementById('system-modal-card');
+        const badgeEl = document.getElementById('system-modal-badge');
+        const titleEl = document.getElementById('system-modal-title');
+        const bodyEl = document.getElementById('system-modal-body');
+        const actionsEl = document.getElementById('system-modal-actions');
+
+        badgeEl.textContent = badge;
+        titleEl.textContent = title;
+        bodyEl.innerHTML = bodyHtml;
+
+        if (isDanger) {
+          card.style.borderColor = 'rgba(255, 42, 75, 0.85)';
+          badgeEl.className = 'inline-block font-hud text-xs font-extrabold px-3 py-1 rounded-full border border-rose-400/60 bg-rose-500/20 text-rose-300';
+        } else {
+          card.style.borderColor = '';
+          badgeEl.className = 'inline-block font-hud text-xs font-extrabold px-3 py-1 rounded-full border border-cyan-400/50 bg-cyan-500/15 holo-text';
+        }
+
+        actionsEl.innerHTML = '';
+        actions.forEach(act => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = act.label;
+          btn.className = act.danger
+            ? 'holo-btn-danger flex-1 font-hud text-xs font-bold py-3 px-4'
+            : 'holo-btn flex-1 font-hud text-xs font-bold py-3 px-4';
+          btn.addEventListener('click', () => {
+            closeSystemModal();
+            if (typeof act.onClick === 'function') act.onClick();
+          });
+          actionsEl.appendChild(btn);
+        });
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      function closeSystemModal() {
+        const modal = document.getElementById('system-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      function getRankInfo(level) {
+        if (level >= 7) return { rank: 'MONARCA DAS SOMBRAS', title: 'Monarca das Sombras', tier: 6, isMonarch: true };
+        if (level >= 6) return { rank: 'RANK S', title: 'Caçador Nacional', tier: 5, isMonarch: false };
+        if (level >= 5) return { rank: 'RANK A', title: 'Elite das Masmorras', tier: 4, isMonarch: false };
+        if (level >= 4) return { rank: 'RANK B', title: 'Assassino das Sombras', tier: 3, isMonarch: false };
+        if (level >= 3) return { rank: 'RANK C', title: 'Caçador Veterano', tier: 2, isMonarch: false };
+        if (level >= 2) return { rank: 'RANK D', title: 'Caçador em Ascensão', tier: 1, isMonarch: false };
+        return { rank: 'RANK E', title: 'Caçador Desperto', tier: 0, isMonarch: false };
+      }
+
+      function getMissionTitle(m) {
+        if (m.type === 'scalable') {
+          const val = m.base + (state.level - 1) * m.step;
+          return m.template(val);
+        }
+        return m.title;
+      }
+
+      function getHunterSVG(tier, isMonarch) {
+        const auraColor = isMonarch ? '#a855f7' : (tier >= 4 ? '#00d4ff' : '#38bdf8');
+        const eyeColor = isMonarch ? '#c084fc' : (tier >= 2 ? '#00f0ff' : '#94a3b8');
+        const coatColor = isMonarch ? '#0f0720' : (tier >= 3 ? '#0a192f' : '#1e293b');
+        const showDaggers = tier >= 3;
+        const showShadowAura = tier >= 5 || isMonarch;
+
+        return `
+          <svg viewBox="0 0 220 260" class="w-full h-full drop-shadow-[0_0_20px_rgba(0,212,255,0.45)]" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="auraGrad" cx="50%" cy="45%" r="50%">
+                <stop offset="0%" stop-color="${auraColor}" stop-opacity="${0.24 + tier * 0.08}"/>
+                <stop offset="100%" stop-color="${auraColor}" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="bladeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f8fafc"/>
+                <stop offset="100%" stop-color="${auraColor}"/>
+              </linearGradient>
+            </defs>
+
+            <ellipse cx="110" cy="130" rx="${66 + tier * 6}" ry="${96 + tier * 4}" fill="url(#auraGrad)"/>
+
+            ${showShadowAura ? `
+              <path d="M52 212 Q30 148 64 96 Q48 138 74 182 Z" fill="${auraColor}" opacity="0.4"/>
+              <path d="M168 212 Q190 148 156 96 Q172 138 146 182 Z" fill="${auraColor}" opacity="0.4"/>
+            ` : ''}
+
+            <path d="M72 118 L148 118 L164 235 L130 225 L110 242 L90 225 L56 235 Z" fill="${coatColor}" stroke="${auraColor}" stroke-width="${tier >= 2 ? 2.2 : 1.2}"/>
+            <path d="M84 118 L96 98 L124 98 L136 118 L110 132 Z" fill="#091324" stroke="${auraColor}" stroke-width="1.6"/>
+            <path d="M98 122 L122 122 L110 175 Z" fill="#020617"/>
+
+            <path d="M88 62 Q110 46 132 62 L130 92 Q110 108 90 92 Z" fill="#f1d5c5"/>
+            <path d="M84 68 Q86 38 112 36 Q138 38 136 70 L130 58 L122 68 L112 54 L100 68 L92 58 Z" fill="#090d16"/>
+
+            <path d="M95 75 L105 77 L96 79 Z" fill="${eyeColor}"/>
+            <path d="M125 75 L115 77 L124 79 Z" fill="${eyeColor}"/>
+            ${tier >= 4 ? `
+              <line x1="96" y1="77" x2="70" y2="73" stroke="${eyeColor}" stroke-width="2" opacity="0.85"/>
+              <line x1="124" y1="77" x2="150" y2="73" stroke="${eyeColor}" stroke-width="2" opacity="0.85"/>
+            ` : ''}
+
+            ${showDaggers ? `
+              <path d="M58 165 L26 196 L42 201 L65 172 Z" fill="url(#bladeGrad)" stroke="#fff" stroke-width="0.9"/>
+              <path d="M162 165 L194 196 L178 201 L155 172 Z" fill="url(#bladeGrad)" stroke="#fff" stroke-width="0.9"/>
+            ` : ''}
+
+            <ellipse cx="110" cy="245" rx="68" ry="8" fill="none" stroke="${auraColor}" stroke-width="1.6" opacity="0.65"/>
+          </svg>
+        `;
+      }
+
+      // =========================================================================
+      // 5. RENDERIZAÇÃO DAS ABAS PRINCIPAIS
+      // =========================================================================
+      function renderHeader() {
+        const rankInfo = getRankInfo(state.level);
+        document.getElementById('hdr-day').textContent = state.day;
+        document.getElementById('hdr-level').textContent = state.level;
+        document.getElementById('hdr-rank').textContent = rankInfo.rank;
+        document.getElementById('btn-toggle-sound').textContent = state.soundEnabled ? '🔊' : '🔇';
+
+        document.body.classList.toggle('monarch-mode', rankInfo.isMonarch);
+        document.body.classList.toggle('punishment-mode', !!state.punishmentActive);
+      }
+
+      function renderMissions() {
+        const listEl = document.getElementById('missions-list');
+        if (!listEl) return;
+
+        let doneCount = 0;
+        listEl.innerHTML = '';
+
+        MISSIONS_DEF.forEach((m) => {
+          const isDone = !!state.completedMissions[m.id];
+          if (isDone) doneCount++;
+
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = `w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 min-h-[60px] ${
+            isDone
+              ? 'bg-cyan-500/15 border-cyan-400/70 shadow-[0_0_14px_rgba(0,212,255,0.2)]'
+              : 'bg-slate-950/75 border-cyan-500/25 hover:border-cyan-400/55'
+          }`;
+
+          const title = getMissionTitle(m);
+          const scaleBadge = m.type === 'scalable'
+            ? `<span class="font-mono-tech text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 border border-blue-400/40 text-blue-200">+5/NV</span>`
+            : '';
+
+          card.innerHTML = `
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 font-bold text-sm ${
+                isDone ? 'bg-cyan-400 border-cyan-200 text-slate-950' : 'border-cyan-500/50 text-transparent'
+              }">✓</div>
+              <div class="min-w-0">
+                <div class="text-sm sm:text-base font-bold ${isDone ? 'line-through text-cyan-200/70' : 'text-white'} truncate">
+                  ${m.id}. ${title}
+                </div>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="text-xs text-cyan-300/85 font-semibold">+1 ${m.attrLabel}</span>
+                  ${scaleBadge}
+                </div>
+              </div>
+            </div>
+            <span class="font-hud text-[10px] font-bold px-2 py-1 rounded-md shrink-0 ${
+              isDone ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40' : 'bg-slate-800/90 text-slate-400'
+            }">${isDone ? 'FEITO' : 'PENDENTE'}</span>
+          `;
+
+          card.addEventListener('click', () => toggleMission(m));
+          listEl.appendChild(card);
+        });
+
+        document.getElementById('missions-done-count').textContent = doneCount;
+        document.getElementById('missions-progress-bar').style.width = `${Math.round((doneCount / MISSIONS_DEF.length) * 100)}%`;
+        document.getElementById('finish-day-num').textContent = state.day;
+        document.getElementById('week-progress-label').textContent = `Semana: ${state.weekProgress}/7 dias para Nível ${state.level + 1}`;
+      }
+
+      function toggleMission(mission) {
+        const wasDone = !!state.completedMissions[mission.id];
+        if (wasDone) {
+          delete state.completedMissions[mission.id];
+          state.attributes[mission.attr] = Math.max(0, (state.attributes[mission.attr] || 0) - 1);
+          playSound('tap');
+        } else {
+          state.completedMissions[mission.id] = true;
+          state.attributes[mission.attr] = (state.attributes[mission.attr] || 0) + 1;
+          playSound('check');
+          showToast(`+1 ${mission.attrLabel}`);
+        }
+        saveState();
+        renderAll();
+      }
+
+      function handleFinishDay() {
+        const doneCount = Object.keys(state.completedMissions).length;
+        const missing = MISSIONS_DEF.length - doneCount;
+        const todayStr = new Date().toLocaleDateString('pt-BR');
+
+        if (missing === 0) {
+          state.punishmentActive = false;
+          state.completedDays += 1;
+          state.streak += 1;
+          state.weekProgress += 1;
+
+          let leveledUp = false;
+          if (state.weekProgress >= 7) {
+            state.level += 1;
+            state.weekProgress = 0;
+            leveledUp = true;
+          }
+
+          state.history.unshift({
+            day: state.day,
+            date: todayStr,
+            completed: doneCount,
+            total: MISSIONS_DEF.length,
+            status: 'concluido',
+            level: state.level
+          });
+
+          state.day += 1;
+          state.completedMissions = {};
+          saveState();
+          renderAll();
+          playSound('levelup');
+
+          const extraMsg = leveledUp
+            ? `<div class="mt-3 p-3 rounded-xl bg-cyan-500/20 border border-cyan-300/60 text-cyan-100 font-bold">LEVEL UP! Você alcançou o Nível ${state.level}! Todas as metas escaláveis aumentaram em +5.</div>`
+            : `<p class="mt-2 text-xs sm:text-sm text-cyan-300/85">Progresso semanal: ${state.weekProgress}/7 dias para o Nível ${state.level + 1}.</p>`;
+
+          openSystemModal({
+            badge: leveledUp ? '[ ! ] LEVEL UP' : '[ ! ] MISSÃO COMPLETA',
+            title: 'Parabéns Jogador! Até o próximo dia.',
+            bodyHtml: `<p>Todas as 17 metas diárias foram concluídas com perfeição.</p>${extraMsg}`,
+            actions: [{ label: 'CONTINUAR', onClick: () => {} }]
+          });
+        } else {
+          state.punishmentActive = true;
+          document.body.classList.add('punishment-mode');
+          playSound('punish');
+
+          const punishments = [
+            `Fazer +${missing * 10} flexões ou agachamentos extras imediatamente.`,
+            `Ficar ${Math.min(6, Math.max(1, missing))} hora(s) completamente sem celular e redes sociais.`,
+            `Executar ${missing * 15} polichinelos extras e beber +1L de água agora.`
+          ];
+          const chosen = punishments[state.day % punishments.length];
+
+          openSystemModal({
+            badge: '[ ! ] ZONA DE PUNIÇÃO ATIVADA',
+            title: `Faltam ${missing} tarefa(s)!`,
+            isDanger: true,
+            bodyHtml: `
+              <p class="mb-3">Você não concluiu todas as 17 missões do Dia ${state.day}.</p>
+              <div class="p-3 rounded-xl bg-rose-950/70 border border-rose-500/60 text-rose-200 font-bold">
+                PUNIÇÃO: ${chosen}
+              </div>
+              <p class="text-xs text-rose-200/80 mt-3">Volte para finalizar o que falta ou aceite a punição para avançar de dia.</p>
+            `,
+            actions: [
+              {
+                label: 'VOLTAR E COMPLETAR',
+                onClick: () => {
+                  state.punishmentActive = false;
+                  saveState();
+                  renderAll();
+                }
+              },
+              {
+                label: 'ACEITAR PUNIÇÃO',
+                danger: true,
+                onClick: () => {
+                  state.streak = 0;
+                  state.history.unshift({
+                    day: state.day,
+                    date: todayStr,
+                    completed: doneCount,
+                    total: MISSIONS_DEF.length,
+                    status: 'punicao',
+                    level: state.level
+                  });
+                  state.day += 1;
+                  state.completedMissions = {};
+                  state.punishmentActive = false;
+                  saveState();
+                  renderAll();
+                  showToast('Punição registrada. Novo dia iniciado.', 'danger');
+                }
+              }
+            ]
+          });
+        }
+      }
+
+      function renderHunter() {
+        const rankInfo = getRankInfo(state.level);
+        document.getElementById('hunter-rank-badge').textContent = rankInfo.rank;
+        document.getElementById('hunter-level').textContent = state.level;
+        document.getElementById('hunter-title').textContent = rankInfo.title;
+        document.getElementById('hunter-svg-container').innerHTML = getHunterSVG(rankInfo.tier, rankInfo.isMonarch);
+
+        document.getElementById('stat-day').textContent = state.day;
+        document.getElementById('stat-completed-days').textContent = state.completedDays;
+        document.getElementById('stat-streak').textContent = state.streak;
+
+        const attrContainer = document.getElementById('attributes-container');
+        attrContainer.innerHTML = '';
+        let totalPoints = 0;
+
+        ATTRIBUTES_META.forEach((a) => {
+          const val = state.attributes[a.key] || 0;
+          totalPoints += val;
+          const cycle = Math.floor(val / 25);
+          const pct = val === 0 ? 0 : Math.max(8, Math.round(((val % 25) / 25) * 100) || 100);
+
+          const row = document.createElement('div');
+          row.innerHTML = `
+            <div class="flex items-center justify-between text-xs sm:text-sm mb-1">
+              <span class="font-bold text-cyan-100">${a.label}</span>
+              <span class="font-hud font-bold text-white">${val} <span class="font-mono-tech text-[11px] text-cyan-300/75">(Tier ${cycle + 1})</span></span>
+            </div>
+            <div class="w-full h-2.5 rounded-full bg-slate-950 border border-cyan-500/25 overflow-hidden">
+              <div class="h-full bg-gradient-to-r ${a.color} transition-all duration-300" style="width: ${pct}%"></div>
+            </div>
+          `;
+          attrContainer.appendChild(row);
+        });
+
+        document.getElementById('total-attr-points').textContent = totalPoints;
+
+        const diagBadge = document.getElementById('diagnosis-badge');
+        const diagText = document.getElementById('diagnosis-text');
+        const totalHist = state.history.length;
+        const doneToday = Object.keys(state.completedMissions).length;
+
+        if (totalHist === 0 && doneToday === 0) {
+          diagBadge.textContent = 'EM ANÁLISE';
+          diagBadge.className = 'font-hud text-[11px] font-bold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40';
+          diagText.textContent = 'Você acabou de despertar no Sistema. Marque suas primeiras metas diárias para iniciar sua evolução.';
+        } else {
+          const rate = totalHist > 0 ? Math.round((state.completedDays / totalHist) * 100) : Math.round((doneToday / 17) * 100);
+          if (rate >= 85 || state.streak >= 5) {
+            diagBadge.textContent = 'EXCELENTE';
+            diagBadge.className = 'font-hud text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50';
+            diagText.textContent = `Desempenho excepcional (${rate}% de conclusão, sequência de ${state.streak} dia(s)). Sua evolução está digna de um Rank S.`;
+          } else if (rate >= 65) {
+            diagBadge.textContent = 'BOM';
+            diagBadge.className = 'font-hud text-[11px] font-bold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/50';
+            diagText.textContent = `Bom ritmo de progresso (${rate}%). Mantenha a consistência diária para acelerar sua subida de nível.`;
+          } else if (rate >= 40) {
+            diagBadge.textContent = 'REGULAR';
+            diagBadge.className = 'font-hud text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50';
+            diagText.textContent = `Progresso regular (${rate}%). Atenção às tarefas de disciplina para evitar cair na Zona de Punição.`;
+          } else {
+            diagBadge.textContent = 'CRÍTICO / RUIM';
+            diagBadge.className = 'font-hud text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/50';
+            diagText.textContent = `Alerta do Sistema: desempenho crítico (${rate}%). Reaja hoje mesmo e conclua todas as 17 metas diárias.`;
+          }
+        }
+      }
+
+      function renderHistory() {
+        const listEl = document.getElementById('history-list');
+        const countEl = document.getElementById('history-count');
+        countEl.textContent = `${state.history.length} registro(s)`;
+
+        if (state.history.length === 0) {
+          listEl.innerHTML = `<div class="text-center py-8 text-sm text-cyan-200/65">Nenhum dia finalizado ainda. Conclua suas metas e clique em FINALIZAR DIA.</div>`;
+          return;
+        }
+
+        listEl.innerHTML = '';
+        state.history.forEach((item) => {
+          const ok = item.status === 'concluido';
+          const row = document.createElement('div');
+          row.className = `p-3.5 rounded-xl border flex items-center justify-between gap-3 ${
+            ok ? 'bg-cyan-950/35 border-cyan-500/30' : 'bg-rose-950/35 border-rose-500/45'
+          }`;
+          row.innerHTML = `
+            <div>
+              <div class="font-hud text-sm font-bold text-white">Dia ${item.day} <span class="font-mono-tech text-xs font-normal text-cyan-200/75">• ${item.date}</span></div>
+              <div class="text-xs sm:text-sm text-cyan-200/85 mt-0.5">Missões: ${item.completed}/${item.total} • Nível ${item.level}</div>
+            </div>
+            <span class="font-hud text-[10px] font-bold px-2.5 py-1 rounded-lg ${
+              ok ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40' : 'bg-rose-500/20 text-rose-300 border border-rose-400/40'
+            }">${ok ? 'CONCLUÍDO' : 'PUNIÇÃO'}</span>
+          `;
+          listEl.appendChild(row);
+        });
+      }
+
+      // =========================================================================
+      // 6. IA DO SISTEMA (ROLAGEM INTELIGENTE, MARKDOWN, 24 MSGS, RETRY, COPIAR)
+      // =========================================================================
+      function safeFormatMarkdown(text) {
+        try {
+          if (window.marked && typeof window.marked.parse === 'function') {
+            window.marked.setOptions({ breaks: true, gfm: true });
+            const rawHtml = window.marked.parse(text || '');
+            if (window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
+              return window.DOMPurify.sanitize(rawHtml);
+            }
+            return rawHtml;
+          }
+        } catch (err) {
+          console.warn('Fallback Markdown:', err);
+        }
+        const escaped = String(text || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        return escaped
+          .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br/>');
+      }
+
+      function getActiveChat() {
+        let chat = state.chats.find(c => c.id === state.activeChatId);
+        if (!chat) {
+          chat = state.chats[0];
+          state.activeChatId = chat.id;
+        }
+        return chat;
+      }
+
+      function isChatNearBottom() {
+        const el = document.getElementById('ai-messages');
+        if (!el) return true;
+        return (el.scrollHeight - el.scrollTop - el.clientHeight) <= 90;
+      }
+
+      function scrollChatToBottom(smooth = true) {
+        const el = document.getElementById('ai-messages');
+        if (!el) return;
+        try {
+          el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+        } catch (_) {
+          el.scrollTop = el.scrollHeight;
+        }
+        updateScrollBottomButton();
+      }
+
+      function updateScrollBottomButton() {
+        const el = document.getElementById('ai-messages');
+        const btn = document.getElementById('btn-scroll-bottom');
+        if (!el || !btn) return;
+        const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+        btn.classList.toggle('visible', dist > 90);
+      }
+
+      function deleteChat(chatId) {
+        if (state.chats.length <= 1) {
+          // Reseta a única conversa existente
+          state.chats[0] = {
+            id: 'chat_' + Date.now(),
+            title: 'Nova Conversa',
+            messages: [{ id: 'm_' + Date.now(), role: 'assistant', text: '**[ NOVA SESSÃO ]**\n\nConversa reiniciada. Como posso ajudar agora, Jogador?' }]
+          };
+          state.activeChatId = state.chats[0].id;
+        } else {
+          state.chats = state.chats.filter(c => c.id !== chatId);
+          if (state.activeChatId === chatId) {
+            state.activeChatId = state.chats[0].id;
+          }
+        }
+        saveState();
+        renderChat(true);
+        showToast('Conversa removida.');
+      }
+
+      function renderChat(forceScroll = false) {
+        const sidebarList = document.getElementById('chat-history-list');
+        const msgContainer = document.getElementById('ai-messages');
+        const modeInd = document.getElementById('ai-mode-indicator');
+        if (!sidebarList || !msgContainer) return;
+
+        const shouldAutoScroll = forceScroll || isChatNearBottom();
+
+        modeInd.textContent = state.aiSettings.provider === 'backend'
+          ? `Backend (${state.aiSettings.endpoint || '/api/chat'}) • 24 msgs`
+          : 'Gemini API • Contexto 24 msgs';
+
+        // Lista de conversas na sidebar
+        sidebarList.innerHTML = '';
+        state.chats.forEach((chat) => {
+          const active = chat.id === state.activeChatId;
+          const row = document.createElement('div');
+          row.className = `flex items-center gap-1 rounded-xl border transition ${
+            active
+              ? 'bg-cyan-500/20 border-cyan-400/60'
+              : 'bg-transparent border-transparent hover:bg-cyan-500/10'
+          }`;
+
+          const openBtn = document.createElement('button');
+          openBtn.type = 'button';
+          openBtn.className = `flex-1 min-w-0 text-left px-3 py-2.5 text-xs sm:text-sm truncate min-h-[44px] ${active ? 'text-white font-bold' : 'text-cyan-200/80'}`;
+          openBtn.textContent = chat.title || 'Nova Conversa';
+          openBtn.addEventListener('click', () => {
+            state.activeChatId = chat.id;
+            saveState();
+            renderChat(true);
+            closeChatSidebar();
+          });
+
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.title = 'Excluir conversa';
+          delBtn.className = 'min-w-[36px] min-h-[36px] mr-1 rounded-lg text-cyan-300/60 hover:text-rose-400 hover:bg-rose-500/15 flex items-center justify-center text-xs';
+          delBtn.textContent = '🗑';
+          delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteChat(chat.id);
+          });
+
+          row.appendChild(openBtn);
+          row.appendChild(delBtn);
+          sidebarList.appendChild(row);
+        });
+
+        // Mensagens da conversa ativa
+        const activeChat = getActiveChat();
+        msgContainer.innerHTML = '';
+
+        activeChat.messages.forEach((msg) => {
+          const isUser = msg.role === 'user';
+          const wrap = document.createElement('div');
+          wrap.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+
+          const bubble = document.createElement('div');
+          bubble.className = isUser
+            ? 'max-w-[86%] sm:max-w-[78%] rounded-2xl rounded-br-sm px-4 py-3 text-sm sm:text-base bg-cyan-600/35 border border-cyan-400/55 text-white chat-bubble-content'
+            : `max-w-[94%] sm:max-w-[86%] rounded-2xl rounded-bl-sm px-4 py-3 bg-slate-900/95 border ${msg.isError ? 'border-rose-500/65' : 'border-cyan-500/35'} text-cyan-50 chat-bubble-content`;
+
+          if (isUser) {
+            bubble.textContent = msg.text;
+          } else {
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'chat-prose';
+            contentDiv.innerHTML = safeFormatMarkdown(msg.text);
+
+            // Envolve tabelas em container com rolagem horizontal própria
+            contentDiv.querySelectorAll('table').forEach((tbl) => {
+              const tWrap = document.createElement('div');
+              tWrap.className = 'table-scroll-wrap';
+              tbl.parentNode.insertBefore(tWrap, tbl);
+              tWrap.appendChild(tbl);
+            });
+
+            // Botão Copiar Código em cada <pre>
+            contentDiv.querySelectorAll('pre').forEach((pre) => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'copy-code-btn';
+              btn.textContent = 'Copiar Código';
+              btn.addEventListener('click', () => {
+                const codeEl = pre.querySelector('code');
+                copyToClipboard(codeEl ? codeEl.innerText : pre.innerText, 'Código copiado!');
+              });
+              pre.appendChild(btn);
+            });
+
+            bubble.appendChild(contentDiv);
+
+            // Rodapé da resposta da IA (Copiar resposta + Tentar novamente em caso de erro)
+            const footer = document.createElement('div');
+            footer.className = 'mt-2.5 pt-2 border-t border-cyan-500/15 flex items-center justify-end gap-2 flex-wrap';
+
+            if (msg.isError && msg.retryText) {
+              const retryBtn = document.createElement('button');
+              retryBtn.type = 'button';
+              retryBtn.className = 'text-xs font-hud font-bold px-2.5 py-1.5 rounded-lg border border-rose-400/60 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25';
+              retryBtn.textContent = '↻ Tentar Novamente';
+              retryBtn.addEventListener('click', () => retryLastMessage(msg.id, msg.retryText));
+              footer.appendChild(retryBtn);
+            }
+
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'text-xs font-mono-tech px-2.5 py-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20';
+            copyBtn.textContent = '📋 Copiar';
+            copyBtn.addEventListener('click', () => copyToClipboard(msg.text, 'Resposta copiada!'));
+            footer.appendChild(copyBtn);
+
+            bubble.appendChild(footer);
+          }
+
+          wrap.appendChild(bubble);
+          msgContainer.appendChild(wrap);
+        });
+
+        if (shouldAutoScroll) {
+          requestAnimationFrame(() => scrollChatToBottom(false));
+        } else {
+          updateScrollBottomButton();
+        }
+      }
+
+      async function callAI(userText, chatHistory) {
+        const rankInfo = getRankInfo(state.level);
+        const systemPrompt = `Você é a IA do Sistema, um assistente de inteligência artificial avançado integrado ao sistema de desenvolvimento pessoal Solo Leveling do usuário. Responda de forma clara, precisa, natural e bem estruturada (usando Markdown quando útil: títulos, listas, tabelas, blocos de código). Entenda erros ortográficos ou gramaticais naturalmente, resolva perguntas simples e altamente complexas (matemática, física, programação, inglês, redação, lógica, rotina) e reconheça honestamente quando não souber algo. Contexto do Jogador: Dia ${state.day}, Nível ${state.level}, ${rankInfo.rank}, Missões hoje: ${Object.keys(state.completedMissions).length}/17.`;
+
+        // Janela deslizante das últimas 24 mensagens válidas (sem erros)
+        const cleanHistory = chatHistory
+          .filter(m => !m.isError && m.text)
+          .slice(-CONTEXT_WINDOW_SIZE);
+
+        if (state.aiSettings.provider === 'backend') {
+          const endpoint = state.aiSettings.endpoint || '/api/chat';
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: userText,
+              systemPrompt,
+              history: cleanHistory.map(m => ({ role: m.role, text: m.text }))
+            })
+          });
+          if (!res.ok) throw new Error(`Backend retornou HTTP ${res.status}`);
+          const data = await res.json();
+          const reply = data.reply || data.text || data.message;
+          if (!reply) throw new Error('Resposta vazia do backend');
+          return reply;
+        }
+
+        // Gemini API com exponential backoff
+        const apiKey = state.aiSettings.apiKey || '';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        const contents = cleanHistory.map(m => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: m.text }]
+        }));
+
+        const payload = {
+          contents,
+          systemInstruction: { parts: [{ text: systemPrompt }] }
+        };
+
+        let lastErr = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error(`API HTTP ${res.status}`);
+            const data = await res.json();
+            const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!reply) throw new Error('Resposta vazia do modelo');
+            return reply;
+          } catch (err) {
+            lastErr = err;
+            if (attempt < 2) {
+              await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+            }
+          }
+        }
+        throw lastErr || new Error('Falha na comunicação com a IA');
+      }
+
+      async function executeAIRequest(chat, userText) {
+        const sendBtn = document.getElementById('btn-send-chat');
+        const typingEl = document.getElementById('chat-typing');
+
+        isSendingAI = true;
+        sendBtn.disabled = true;
+        typingEl.classList.remove('hidden');
+
+        try {
+          const reply = await callAI(userText, chat.messages);
+          chat.messages.push({
+            id: 'm_' + Date.now(),
+            role: 'assistant',
+            text: reply
+          });
+          playSound('tap');
+        } catch (err) {
+          chat.messages.push({
+            id: 'err_' + Date.now(),
+            role: 'assistant',
+            isError: true,
+            retryText: userText,
+            text: `**[ ERRO DE COMUNICAÇÃO ]**\n\nNão foi possível obter resposta da IA no momento (${err.message}).\n\nVerifique sua conexão com a internet ou clique no ícone **⚙** para configurar sua chave ou endpoint \`/api/chat\`.`
+          });
+        } finally {
+          isSendingAI = false;
+          sendBtn.disabled = false;
+          typingEl.classList.add('hidden');
+          saveState();
+          renderChat(false);
+        }
+      }
+
+      async function retryLastMessage(errorMsgId, originalText) {
+        if (isSendingAI) return;
+        const chat = getActiveChat();
+        chat.messages = chat.messages.filter(m => m.id !== errorMsgId);
+        renderChat(true);
+        await executeAIRequest(chat, originalText);
+      }
+
+      async function handleSendChat() {
+        if (isSendingAI) return;
+        const input = document.getElementById('chat-input');
+        const charCount = document.getElementById('chat-char-count');
+        const text = (input.value || '').trim();
+
+        if (!text) return;
+        if (text.length > MAX_CHAT_CHARS) {
+          showToast(`Limite máximo de ${MAX_CHAT_CHARS} caracteres excedido.`, 'danger');
+          return;
+        }
+
+        const chat = getActiveChat();
+        const userMsgsCount = chat.messages.filter(m => m.role === 'user').length;
+        if (userMsgsCount === 0) {
+          chat.title = text.slice(0, 30) + (text.length > 30 ? '...' : '');
+        }
+
+        chat.messages.push({
+          id: 'u_' + Date.now(),
+          role: 'user',
+          text
+        });
+
+        input.value = '';
+        input.style.height = 'auto';
+        if (charCount) charCount.textContent = `0 / ${MAX_CHAT_CHARS}`;
+        saveState();
+        renderChat(true);
+
+        await executeAIRequest(chat, text);
+      }
+
+      function openChatSidebar() {
+        document.getElementById('chat-sidebar').classList.remove('-translate-x-full');
+        document.getElementById('chat-sidebar-overlay').classList.remove('hidden');
+      }
+
+      function closeChatSidebar() {
+        document.getElementById('chat-sidebar').classList.add('-translate-x-full');
+        document.getElementById('chat-sidebar-overlay').classList.add('hidden');
+      }
+
+      // =========================================================================
+      // 7. NAVEGAÇÃO E EVENTOS
+      // =========================================================================
+      function switchTab(tabName) {
+        activeTab = tabName;
+        const mainEl = document.getElementById('main-container');
+        if (mainEl) {
+          mainEl.classList.toggle('ai-active-mobile', tabName === 'ai');
+        }
+
+        document.querySelectorAll('.tab-section').forEach(sec => {
+          sec.classList.toggle('hidden', sec.id !== `tab-${tabName}`);
+        });
+
+        document.querySelectorAll('.nav-tab').forEach(btn => {
+          const active = btn.getAttribute('data-tab') === tabName;
+          btn.classList.toggle('active', active);
+          btn.classList.toggle('text-slate-300', !active);
+        });
+
+        if (tabName === 'ai') {
+          requestAnimationFrame(() => updateScrollBottomButton());
+        } else {
+          window.scrollTo({ top: 0, behavior: 'auto' });
+        }
+      }
+
+      function renderAll() {
+        renderHeader();
+        renderMissions();
+        renderHunter();
+        renderHistory();
+        renderChat(false);
+      }
+
+      function bindEvents() {
+        // Modal inicial [ ACEITAR ] -> desbloqueia áudio no iOS
+        document.getElementById('btn-accept-welcome').addEventListener('click', () => {
+          unlockAudio();
+          state.acceptedWelcome = true;
+          document.getElementById('welcome-modal').classList.add('hidden');
+          playSound('levelup');
+          saveState();
+          switchTab('missoes');
+        });
+
+        // Som
+        document.getElementById('btn-toggle-sound').addEventListener('click', () => {
+          state.soundEnabled = !state.soundEnabled;
+          if (state.soundEnabled) playSound('check');
+          saveState();
+          renderHeader();
+          showToast(state.soundEnabled ? 'Som ativado' : 'Som silenciado');
+        });
+
+        // Abas
+        document.querySelectorAll('.nav-tab').forEach(btn => {
+          btn.addEventListener('click', () => {
+            playSound('tap');
+            switchTab(btn.getAttribute('data-tab'));
+          });
+        });
+
+        // Finalizar Dia
+        document.getElementById('btn-finish-day').addEventListener('click', handleFinishDay);
+
+        // Exportar JSON
+        document.getElementById('btn-export-json').addEventListener('click', () => {
+          try {
+            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `solo_leveling_backup_dia_${state.day}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Backup JSON exportado!');
+          } catch (_) {
+            showToast('Erro ao exportar JSON.', 'danger');
+          }
+        });
+
+        // Importar JSON
+        document.getElementById('input-import-json').addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const parsed = JSON.parse(reader.result);
+              if (!parsed || typeof parsed !== 'object' || typeof parsed.day !== 'number') {
+                throw new Error('Inválido');
+              }
+              const def = createDefaultState();
+              state = {
+                ...def,
+                ...parsed,
+                attributes: { ...def.attributes, ...(parsed.attributes || {}) },
+                aiSettings: { ...def.aiSettings, ...(parsed.aiSettings || {}) },
+                acceptedWelcome: true
+              };
+              saveState();
+              renderAll();
+              showToast('Progresso importado com sucesso!');
+            } catch (_) {
+              showToast('Arquivo JSON inválido ou corrompido.', 'danger');
+            }
+            e.target.value = '';
+          };
+          reader.readAsText(file);
+        });
+
+        // Instalar no iPhone
+        document.getElementById('btn-ios-install').addEventListener('click', () => {
+          openSystemModal({
+            badge: 'GUIA iOS / SAFARI',
+            title: 'Instalar na Tela de Início',
+            bodyHtml: `
+              <ol class="text-left list-decimal pl-5 space-y-2 text-cyan-100/90">
+                <li>Abra este sistema no navegador <strong>Safari</strong> do seu iPhone.</li>
+                <li>Toque no ícone de <strong>Compartilhar</strong> (quadrado com seta para cima) na barra inferior.</li>
+                <li>Role para baixo e toque em <strong>Adicionar à Tela de Início</strong>.</li>
+                <li>Confirme tocando em <strong>Adicionar</strong> no canto superior direito.</li>
+              </ol>
+            `,
+            actions: [{ label: 'ENTENDI', onClick: () => {} }]
+          });
+        });
+
+        // Reiniciar com confirmação dupla em 2 etapas
+        document.getElementById('btn-reset-system').addEventListener('click', () => {
+          openSystemModal({
+            badge: '[ ! ] CONFIRMAÇÃO 1 DE 2',
+            title: 'Reiniciar todo o Sistema?',
+            isDanger: true,
+            bodyHtml: 'Isso apagará seu nível, atributos, missões e histórico atual. Deseja continuar?',
+            actions: [
+              { label: 'CANCELAR', onClick: () => {} },
+              {
+                label: 'SIM, CONTINUAR',
+                danger: true,
+                onClick: () => {
+                  setTimeout(() => {
+                    openSystemModal({
+                      badge: '[ ! ] CONFIRMAÇÃO 2 DE 2',
+                      title: 'Ação Irreversível!',
+                      isDanger: true,
+                      bodyHtml: 'Tem certeza absoluta que deseja zerar todos os dados do Jogador?',
+                      actions: [
+                        { label: 'CANCELAR', onClick: () => {} },
+                        {
+                          label: 'ZERAR TUDO AGORA',
+                          danger: true,
+                          onClick: () => {
+                            state = createDefaultState();
+                            state.acceptedWelcome = true;
+                            saveState();
+                            renderAll();
+                            showToast('Sistema reiniciado do zero.', 'danger');
+                          }
+                        }
+                      ]
+                    });
+                  }, 120);
+                }
+              }
+            ]
+          });
+        });
+
+        // Chat: Nova Conversa, Enviar, Enter, Auto-resize, Contador e Scroll
+        document.getElementById('btn-new-chat').addEventListener('click', () => {
+          const id = 'chat_' + Date.now();
+          state.chats.unshift({
+            id,
+            title: 'Nova Conversa',
+            messages: [{ id: 'm_' + Date.now(), role: 'assistant', text: '**[ NOVA SESSÃO ]**\n\nComo posso auxiliar você agora, Jogador?' }]
+          });
+          state.activeChatId = id;
+          saveState();
+          renderChat(true);
+          closeChatSidebar();
+        });
+
+        document.getElementById('btn-send-chat').addEventListener('click', handleSendChat);
+
+        const chatInput = document.getElementById('chat-input');
+        const charCount = document.getElementById('chat-char-count');
+        chatInput.addEventListener('input', () => {
+          chatInput.style.height = 'auto';
+          chatInput.style.height = Math.min(chatInput.scrollHeight, 112) + 'px';
+          if (charCount) charCount.textContent = `${chatInput.value.length} / ${MAX_CHAT_CHARS}`;
+        });
+        chatInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendChat();
+          }
+        });
+
+        // Listener de rolagem do chat + botão flutuante
+        const aiMessagesEl = document.getElementById('ai-messages');
+        aiMessagesEl.addEventListener('scroll', updateScrollBottomButton, { passive: true });
+        document.getElementById('btn-scroll-bottom').addEventListener('click', () => scrollChatToBottom(true));
+
+        // Sidebar mobile
+        document.getElementById('btn-open-sidebar').addEventListener('click', openChatSidebar);
+        document.getElementById('btn-close-sidebar').addEventListener('click', closeChatSidebar);
+        document.getElementById('chat-sidebar-overlay').addEventListener('click', closeChatSidebar);
+
+        // Configurações da IA
+        const openAiModal = () => {
+          const modal = document.getElementById('ai-settings-modal');
+          const prov = document.getElementById('ai-provider-select');
+          const keyInp = document.getElementById('ai-apikey-input');
+          const endInp = document.getElementById('ai-endpoint-input');
+          prov.value = state.aiSettings.provider || 'gemini';
+          keyInp.value = state.aiSettings.apiKey || '';
+          endInp.value = state.aiSettings.endpoint || '/api/chat';
+          document.getElementById('ai-apikey-wrap').classList.toggle('hidden', prov.value !== 'gemini');
+          document.getElementById('ai-endpoint-wrap').classList.toggle('hidden', prov.value !== 'backend');
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        };
+
+        document.getElementById('btn-ai-settings').addEventListener('click', openAiModal);
+        document.getElementById('btn-ai-settings-top').addEventListener('click', openAiModal);
+        document.getElementById('btn-close-ai-settings').addEventListener('click', () => {
+          document.getElementById('ai-settings-modal').classList.add('hidden');
+          document.getElementById('ai-settings-modal').classList.remove('flex');
+        });
+        document.getElementById('ai-provider-select').addEventListener('change', (e) => {
+          document.getElementById('ai-apikey-wrap').classList.toggle('hidden', e.target.value !== 'gemini');
+          document.getElementById('ai-endpoint-wrap').classList.toggle('hidden', e.target.value !== 'backend');
+        });
+        document.getElementById('btn-save-ai-settings').addEventListener('click', () => {
+          state.aiSettings.provider = document.getElementById('ai-provider-select').value;
+          state.aiSettings.apiKey = document.getElementById('ai-apikey-input').value.trim();
+          state.aiSettings.endpoint = document.getElementById('ai-endpoint-input').value.trim() || '/api/chat';
+          saveState();
+          renderChat(false);
+          document.getElementById('ai-settings-modal').classList.add('hidden');
+          document.getElementById('ai-settings-modal').classList.remove('flex');
+          showToast('Configurações da IA salvas!');
+        });
+      }
+
+      // =========================================================================
+      // 8. INICIALIZAÇÃO IMEDIATA NO DOMCONTENTLOADED
+      // =========================================================================
+      document.addEventListener('DOMContentLoaded', () => {
+        try {
+          loadLocalState();
+          bindEvents();
+          renderAll();
+          switchTab('missoes');
+
+          const welcomeModal = document.getElementById('welcome-modal');
+          if (state.acceptedWelcome) {
+            welcomeModal.classList.add('hidden');
+          } else {
+            welcomeModal.classList.remove('hidden');
+          }
+        } catch (err) {
+          console.error('Erro na inicialização:', err);
+        }
+
+        // Conecta nuvem em segundo plano sem bloquear a UI
+        initFirebaseSafely();
+      });
+    })();
+  </script>
+</body>
+</html>
