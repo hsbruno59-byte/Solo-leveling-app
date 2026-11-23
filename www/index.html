@@ -1738,14 +1738,33 @@
         }
       }
 
-      async function callAI(userText, chatHistory) {
+            async function callAI(userText, chatHistory, onChunk) {
         const rankInfo = getRankInfo(state.level);
-        const systemPrompt = `Você é a IA do Sistema, um assistente de inteligência artificial avançado integrado ao sistema de desenvolvimento pessoal Solo Leveling do usuário. Responda de forma clara, precisa, natural e bem estruturada (usando Markdown quando útil: títulos, listas, tabelas, blocos de código). Entenda erros ortográficos ou gramaticais naturalmente, resolva perguntas simples e altamente complexas (matemática, física, programação, inglês, redação, lógica, rotina) e reconheça honestamente quando não souber algo. Contexto do Jogador: Dia ${state.day}, Nível ${state.level}, ${rankInfo.rank}, Missões hoje: ${Object.keys(state.completedMissions).length}/17.`;
+        const systemPrompt = `Você é a IA do Sistema, assistente integrado ao sistema Solo Leveling do Jogador. Responda de forma clara, direta, precisa e estruturada em Markdown quando útil. Contexto: Dia ${state.day}, Nível ${state.level}, ${rankInfo.rank}, Missões hoje: ${Object.keys(state.completedMissions).length}/17.`;
 
-        // Janela deslizante das últimas 24 mensagens válidas (sem erros)
-        const cleanHistory = chatHistory
-          .filter(m => !m.isError && m.text)
-          .slice(-CONTEXT_WINDOW_SIZE);
+        // 1. Limita às últimas 6 mensagens válidas e garante alternância estrita user -> model
+        const rawHistory = chatHistory
+          .filter(m => !m.isError && m.text && m.text.trim())
+          .slice(-6);
+
+        const contents = [];
+        for (const m of rawHistory) {
+          const role = m.role === 'user' ? 'user' : 'model';
+          // A API do Gemini exige que a primeira mensagem seja sempre 'user'
+          if (contents.length === 0 && role !== 'user') continue;
+
+          // Se houver duas mensagens seguidas do mesmo papel, mescla para evitar Erro 400
+          if (contents.length > 0 && contents[contents.length - 1].role === role) {
+            contents[contents.length - 1].parts[0].text += '\n\n' + m.text;
+          } else {
+            contents.push({ role, parts: [{ text: m.text }] });
+          }
+        }
+
+        // Garante que a pergunta atual esteja no final como 'user'
+        if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
+          contents.push({ role: 'user', parts: [{ text: userText }] });
+        }
 
         if (state.aiSettings.provider === 'backend') {
           const endpoint = state.aiSettings.endpoint || '/api/chat';
@@ -1755,47 +1774,87 @@
             body: JSON.stringify({
               message: userText,
               systemPrompt,
-              history: cleanHistory.map(m => ({ role: m.role, text: m.text }))
+              history: rawHistory.map(m => ({ role: m.role, text: m.text }))
             })
           });
           if (!res.ok) throw new Error(`Backend retornou HTTP ${res.status}`);
           const data = await res.json();
           const reply = data.reply || data.text || data.message;
           if (!reply) throw new Error('Resposta vazia do backend');
+          if (onChunk) onChunk(reply);
           return reply;
         }
 
-        // Gemini API com exponential backoff
-        const apiKey = state.aiSettings.apiKey || '';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+        const apiKey = (state.aiSettings.apiKey || '').trim();
+        if (!apiKey) throw new Error('Chave da API não configurada (toque em ⚙)');
 
-        const contents = cleanHistory.map(m => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: m.text }]
-        }));
+        // Modelo estável + rota de Streaming em tempo real (SSE)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
 
         const payload = {
           contents,
-          systemInstruction: { parts: [{ text: systemPrompt }] }
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: 0 } // Resposta imediata (< 1s) sem pausa de pensamento
+          }
         };
 
         let lastErr = null;
-        for (let attempt = 0; attempt < 3; attempt++) {
+        for (let attempt = 0; attempt < 2; attempt++) {
           try {
             const res = await fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
-            if (!res.ok) throw new Error(`API HTTP ${res.status}`);
-            const data = await res.json();
-            const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!reply) throw new Error('Resposta vazia do modelo');
-            return reply;
+
+            if (!res.ok) {
+              let detail = `HTTP ${res.status}`;
+              try {
+                const errJson = await res.json();
+                if (errJson?.error?.message) detail += `: ${errJson.error.message}`;
+              } catch (_) {}
+              throw new Error(detail);
+            }
+
+            if (!res.body) throw new Error('Stream indisponível no navegador');
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+            let fullText = '';
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith('data:')) continue;
+                const jsonStr = trimmed.slice(5).trim();
+                if (!jsonStr || jsonStr === '[DONE]') continue;
+
+                try {
+                  const chunk = JSON.parse(jsonStr);
+                  const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (partText) {
+                    fullText += partText;
+                    if (onChunk) onChunk(fullText);
+                  }
+                } catch (_) {}
+              }
+            }
+
+            if (!fullText.trim()) throw new Error('Resposta vazia do modelo');
+            return fullText;
           } catch (err) {
             lastErr = err;
-            if (attempt < 2) {
-              await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+            if (attempt < 1) {
+              await new Promise(r => setTimeout(r, 800));
             }
           }
         }
@@ -1810,30 +1869,55 @@
         sendBtn.disabled = true;
         typingEl.classList.remove('hidden');
 
+        // Cria a mensagem do assistente na hora para ir preenchendo em tempo real
+        const assistantMsg = {
+          id: 'm_' + Date.now(),
+          role: 'assistant',
+          text: ''
+        };
+        let addedToChat = false;
+        let lastRenderTime = 0;
+
         try {
-          const reply = await callAI(userText, chat.messages);
-          chat.messages.push({
-            id: 'm_' + Date.now(),
-            role: 'assistant',
-            text: reply
+          const reply = await callAI(userText, chat.messages, (partialText) => {
+            assistantMsg.text = partialText;
+            if (!addedToChat) {
+              addedToChat = true;
+              typingEl.classList.add('hidden');
+              chat.messages.push(assistantMsg);
+            }
+            const now = Date.now();
+            if (now - lastRenderTime > 60) {
+              lastRenderTime = now;
+              renderChat(true);
+            }
           });
+
+          assistantMsg.text = reply;
+          if (!addedToChat) {
+            chat.messages.push(assistantMsg);
+          }
           playSound('tap');
         } catch (err) {
+          if (addedToChat) {
+            chat.messages = chat.messages.filter(m => m.id !== assistantMsg.id);
+          }
           chat.messages.push({
             id: 'err_' + Date.now(),
             role: 'assistant',
             isError: true,
             retryText: userText,
-            text: `**[ ERRO DE COMUNICAÇÃO ]**\n\nNão foi possível obter resposta da IA no momento (${err.message}).\n\nVerifique sua conexão com a internet ou clique no ícone **⚙** para configurar sua chave ou endpoint \`/api/chat\`.`
+            text: `**[ ERRO DE COMUNICAÇÃO ]**\n\nNão foi possível obter resposta da IA no momento (${err.message}).\n\nVerifique sua conexão com a internet ou clique no ícone **⚙** para revisar sua chave da API.`
           });
         } finally {
           isSendingAI = false;
           sendBtn.disabled = false;
           typingEl.classList.add('hidden');
           saveState();
-          renderChat(false);
+          renderChat(true);
         }
       }
+
 
       async function retryLastMessage(errorMsgId, originalText) {
         if (isSendingAI) return;
